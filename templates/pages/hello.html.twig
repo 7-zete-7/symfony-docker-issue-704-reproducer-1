@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+
+{% block javascripts %}
+    <script type="application/json" id="mercure-url">
+        {{- mercure('/hello')|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_HEX_TAG'))|raw -}}
+    </script>
+    <script type="application/json" id="message-url">
+        {{- path('message')|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_HEX_TAG'))|raw -}}
+    </script>
+    <script type="module">
+        const url = JSON.parse(document.getElementById("mercure-url").textContent);
+        const eventSource = new EventSource(url);
+        eventSource.onmessage = (event) => {
+            document.getElementById("messages").append(event.data, "\n------------\n");
+        };
+    </script>
+    <script type="module">
+        const url = JSON.parse(document.getElementById("message-url").textContent);
+        document.getElementById("new-message-form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                },
+                body: JSON.stringify({
+                    content: document.getElementById("new-message-content").value,
+                }),
+            });
+
+            if (!response.ok) {
+                console.error("Failed to send new message request: [HTTP %d] %s", response.status, response.statusText);
+            }
+        });
+    </script>
+{% endblock %}
+
+{% block body -%}
+    <h1>Hello!</h1>
+
+    <form id="new-message-form" action="javascript:void 0">
+        <textarea name="message[content]" id="new-message-content"></textarea>
+        <button type="submit">submit</button>
+    </form>
+
+    <h2>Messages</h2>
+    <pre id="messages"></pre>
+{%- endblock %}
